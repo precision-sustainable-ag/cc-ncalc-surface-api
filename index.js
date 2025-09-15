@@ -3,9 +3,6 @@ process.on('uncaughtException', (err) => {
   console.log('Node NOT Exiting...');
 });
 
-const ip = require('ip');
-console.log('IP:', ip.address());
-
 const express     = require('express');       // simplifies http server development
 const cors        = require('cors');          // allow cross-origin requests
 const path        = require('path');          // to get the current path
