@@ -1,20 +1,17 @@
 {
-  "name": "cc-ncalc-api",
-  "version": "1.0.0",
-  "description": "CC-NCALC",
-  "main": "index.js",
   "dependencies": {
-    "airtable": "^0.11.4",
-    "axios": "^1.12.2",
+    "airtable": "^0.12.2",
     "cors": "^2.8.5",
-    "express": "^4.18.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "moment": "^2.29.4",
-    "mysql": "^2.18.1"
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch --watch-path=.env --watch-path=public index.js",
     "start": "node index"
-  },
-  "author": "PSA Rick Hitchcock",
-  "license": "ISC"
+  }
 }

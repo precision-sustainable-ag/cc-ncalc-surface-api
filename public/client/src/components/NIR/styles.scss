@@ -1,0 +1,128 @@
+body, html {
+  background: white;
+}
+
+#NIR {
+  summary {
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    background: #33f;
+    color: white;
+    font-weight: bold;
+    padding: 0.5rem;
+    height: 2rem;
+    margin-bottom: 1rem;
+    z-index: 1;
+  }
+
+  table {
+    border: 1px solid black;
+    border-spacing: 0; 
+    empty-cells: show;
+
+    caption {
+      text-align: left;
+      position: sticky;
+      top: 0;
+      background: #eee;
+      padding: 0.5rem;
+      border: 1px solid #333;
+    }
+
+    td, th {
+      padding: 0.2em 0.5em;
+      border-right: 1px solid #ddd;
+      border-bottom: 1px solid #bbb;
+    }
+
+    th {
+      background: #eee;
+      vertical-align: bottom;
+  
+      span {
+        font-weight: normal;
+      }
+    }
+  }
+
+  #WinterPea {
+    td:nth-child(n + 2) {
+      text-align: right;
+    }
+  }
+
+  #List {
+    button.clear, button.all {
+      float: right;
+      font-size: 80%;
+    }
+
+    button.clear {
+      background: burlywood;
+      width: 1.5rem;
+      margin-left: 0.4rem;
+    }
+
+    button.all {
+      color: green;
+      margin-left: 1rem;
+    }
+  }
+
+  #Summary {
+    background: white;
+    
+    thead {
+      position: sticky;
+      top: 0;
+      background: yellow;
+
+      tr:last-child td {
+        border-bottom: 1px solid black;
+      }
+    }
+
+    th {
+      cursor: pointer;
+    }
+
+    tr.stats {
+      th {
+        background: yellow;
+      }
+  
+      th:nth-child(1) {
+        text-align: left;
+      }
+    }
+
+    thead tr:nth-child(n+4):nth-child(-n+8) > :nth-child(n+12):nth-child(-n+14) {
+      color: brown;
+      font-weight: bold;
+    }
+  }
+
+  button {
+    border: 1px solid #555;
+    border-radius: 5px;
+    margin-right: 0.2rem;
+  }
+
+  button.selected {
+    background-color: #dfd;
+  }
+
+  .unused {
+    color: #bbb;
+  }
+
+  .caption {
+    text-align: center;
+  }
+}
+
+.highcharts-caption {
+  text-align: center !important; /* Force center alignment */
+  width: 100%; /* Ensure full width */
+}

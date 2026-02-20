@@ -1,0 +1,60 @@
+#Graphs {
+  background: #eee;
+
+  .chart {
+    width: calc(15vw - 0.5rem);
+    min-width: 400px;
+    margin: 0.25rem;
+    aspect-ratio: 1.618;
+    display: inline-block;
+    outline: 1px solid #888;
+  }
+
+  h2 {
+    font-size: 110%;
+    margin: 0;
+  }
+
+  input:focus,
+  select:focus {
+    background: yellow;
+  }
+
+  label {
+    margin-right: 1rem;
+    border: 1px solid #888;
+    padding: 0.4rem;
+  }
+
+  #Inputs {
+    position: fixed;
+    left: 0;
+    height: 100vh;
+    background: #f8f8f8;
+    width: 20rem;
+    padding: 0.5rem;
+    border-right: 1px solid #bbb;
+
+    * {
+      text-align: left;
+    }
+
+    input {
+      width: 6rem;
+    }
+  }
+
+  #Charts {
+    margin-left: 20rem;
+    top: 0;
+    padding: 0 1rem;
+  }
+
+  label {
+    white-space: nowrap;
+  }
+
+  .loading .highcharts-series {
+    display: none;
+  }
+}

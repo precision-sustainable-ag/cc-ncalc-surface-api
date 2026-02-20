@@ -1,19 +1,19 @@
 apiVersion : apps/v1
 kind: Deployment
 metadata:
-  name: dstncalcapi 
+  name: dstfullncalcapi 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dstncalcapi
+      app: dstfullncalcapi
   template:
     metadata:
       labels:
-        app: dstncalcapi 
+        app: dstfullncalcapi 
     spec:
       containers:
-        - name: dstncalcapi 
-          image: containerregistry4pd7i.azurecr.io/dstncalcapi
+        - name: dstfullncalcapi 
+          image: containerregistry4pd7i.azurecr.io/dstfullncalcapi
           ports:
           - containerPort: 80

@@ -1,0 +1,118 @@
+<base target="_blank">
+
+<link rel="stylesheet" href="/css/cc-ncalc.css">
+
+<h1>Cover Crop Nitrogen Calculator (CC-NCALC) API</h1>
+
+<h2>Base URL:</h2>
+<code>https://api.covercrop-ncalc.org/</code>
+<p>(also available at https://developapi.covercrop-ncalc.org/ for testing)</p>
+
+<h2>Endpoint</h2>
+<ul>
+  <li><code>GET /surface</code></li>
+</ul>
+
+<p>The endpoint returns nitrogen mineralization estimates based on weather, soil, and crop traits.</p>
+
+<table class="indent nomodel">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Type</th>
+      <th>Units</th>
+      <th>Required</th>
+      <th>Description</th>
+      <th>Model</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>lat</td><td>number</td><td>degrees</td><td>✅</td><td>Latitude</td><td>both</td></tr>
+    <tr><td>lon</td><td>number</td><td>degrees</td><td>✅</td><td>Longitude</td><td>both</td></tr>
+    <tr><td>start</td><td>string</td><td>YYYY-MM-DD</td><td>✅</td><td>Start (planting) date</td><td>both</td></tr>
+    <tr><td>end</td><td>string</td><td>YYYY-MM-DD</td><td>❌</td><td>Termination date. Defaults to <code>start + 90 days</code></td><td>both</td></tr>
+    <tr><td>n</td><td>number</td><td>%</td><td>✅</td><td>N concentration in cover crop</td><td>both</td></tr>
+    <tr><td>biomass</td><td>number</td><td>kg/ha</td><td>✅</td><td>Dry biomass at termination</td><td>both</td></tr>
+    <tr><td>lwc</td><td>number</td><td>g water/<br>g dry biomass</td><td>❌</td><td>Leaf water content (default: 4)</td><td>surface</td></tr>
+    <tr><td>carb</td><td>number</td><td>%</td><td>❌</td><td>Carbohydrate content (default: <code>24.7 + 10.5 * n</code>)</td><td>both</td></tr>
+    <tr><td>cell</td><td>number</td><td>%</td><td>❌</td><td>Holocellulose (default: <code>69 - 10.2 * n</code>)</td><td>both</td></tr>
+    <tr><td>lign</td><td>number</td><td>%</td><td>❌</td><td>Lignin (default: <code>100 - (carb + cell)</code>)</td><td>both</td></tr>
+    <tr><td>om</td><td>number</td><td>%</td><td>❌</td><td>Organic matter (from SSURGO if omitted)</td><td>both</td></tr>
+    <tr><td>bd</td><td>number</td><td>g/cm³</td><td>❌</td><td>Bulk density (from SSURGO if omitted)</td><td>both</td></tr>
+    <tr><td>in</td><td>number</td><td>ppm</td><td>❌</td><td>Inorganic N in soil (default: 10)</td><td>both</td></tr>
+    <tr><td>pmn</td><td>number</td><td>mg N/kg</td><td>❌</td><td>Potentially mineralizable N (default: 7)</td><td>both</td></tr>
+  </tbody>
+</table>
+
+<h2>Output Format</h2>
+<p>Default: <strong>JSON</strong></p>
+
+<p>To get <strong>CSV</strong>, add <code>&output=csv</code> to your request.</p>
+
+<h2>Notes</h2>
+<ul>
+  <li>Any or all of the inputs may be arrays. This allows you to run multiple models together.</li>
+  <li>If multiple inputs are arrays, they <strong>must have the same length</strong>.</li>
+  <li>You can include <strong>custom parameters</strong> in your query (e.g., <code>site=Field_A</code>) — they will be echoed back in the output.</li>
+  <!-- <li>Weather and SSURGO (soil) data are cached per lat/lon + start/end combination.</li> -->
+  <li>For future dates, soil data is based on <strong>5-year daily averages.</strong></li>
+</ul>
+
+<h2>Streaming Support</h2>
+<p>Use the query string <code>stream=true</code> to enable streaming output for large batch queries (<strong>only available on POST requests</strong>).</p>
+<p>This can help overcome Cloudflare's ~20s timeout due to lack of output activity. However, it will <em>not</em> bypass Cloudflare’s <strong>total timeout limit of 100 seconds</strong>.</p>
+
+<p>To avoid timeouts, you can:</p>
+<ul>
+  <li>Break your data into smaller batches</li>
+  <li>Add client-side retry logic for timeouts</li>
+</ul>
+
+<h2>Example GET Request</h2>
+<ul>
+  <li>
+    <code>
+      <a target="_blank" href="/surface?start=2020-04-26&end=2020-10-22&lat=34.88689&lon=-83.41941&n=3&biomass=3000&lwc=10">
+        HOSTNAME/surface?start=2020-04-26&end=2020-10-22&lat=34.88689&lon=-83.41941&n=3&biomass=3000&lwc=10
+      </a>    
+    </code>
+  </li>
+</ul>
+
+<h2>Example POST Requests</h2>
+<p><strong>Single Site</strong></p>
+<code class="block">
+  {
+    "start": "2023-10-01",
+    "end": "2024-04-15",
+    "lat": 35.9,
+    "lon": -83.95,
+    "summary": true,
+    "stream": true,
+    "n": [2.6],
+    "biomass": [3000],
+    "carb": [50],
+    "cell": [45],
+    "lign": [5],
+    "site": ["TN_101"]
+  }
+</code>
+
+<p><strong>Multiple Sites</strong></p>
+<code class="block">
+  {
+    "start": "2023-10-01",
+    "end": "2024-04-15",
+    "lat": 35.9,
+    "lon": -83.95,
+    "summary": true,
+    "stream": true,
+    "site": ["TN_101", "TN_102"],
+    "n": [2.6, 3.1],
+    "biomass": [3000, 1800],
+    "carb": [50, 60],
+    "cell": [45, 35.5],
+    "lign": [5, 4.5]
+  }
+</code>
+

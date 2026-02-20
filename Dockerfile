@@ -1,8 +1,14 @@
-FROM node:18 as builder
-WORKDIR /
+FROM node:18
+WORKDIR /usr/app
 COPY . .
 RUN npm install
 
+WORKDIR /usr/app/public/client
+RUN npm install
+RUN npm install vite
+RUN npm run build
+
+WORKDIR /usr/app
+
 EXPOSE 80
 ENTRYPOINT npm start
-
