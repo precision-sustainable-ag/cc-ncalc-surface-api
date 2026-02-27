@@ -1,4 +1,4 @@
-// error 524
+// error 524 (timeout)
 
 // LitterWaterContent:  +lwc
 // Changed: utc
@@ -9,14 +9,8 @@
 
 // http://localhost/surface?start=2020-04-26&end=2020-10-22&lat=34.88689,35&lon=-83.41941,-84&n=5&biomass=3000&lwc=10&bd=1.45&carb=40&cell=40&lign=20
 
-const express = require('express');
-
 const weatherURL = 'https://weather.covercrop-data.org';
 // const weatherURL = 'http://localhost';
-
-const app = express();
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 
 process.on('uncaughtException', (err) => {
   console.trace(err);
@@ -113,7 +107,7 @@ const query = async (sq, parms) => {
 const weatherCache = {};
 const ssurgoCache = {};
 
-const ccncalc = async (req, res, type) => {
+const ccncalc = async (request, reply, type) => {
   let lastFetch = {
     url: null,
     options: null,
@@ -125,7 +119,7 @@ const ccncalc = async (req, res, type) => {
     return response;
   };
 
-  if (req.hostname !== 'localh') {
+  if (request.hostname !== 'localh') {
     console.time = () => {};
     console.timeEnd = () => {};
   }
@@ -143,14 +137,17 @@ const ccncalc = async (req, res, type) => {
 
   let weather;
   let moisture;
-  const queryData = req.method === 'GET' ? req.query : req.body;
+
+  // const queryData = request.method === 'GET' ? request.query : request.body;
+  const queryData = request.body ?? request.query;
   const site = queryData.psa ? PSA[queryData.psa] : null;
 
   const requiredParams = ['lat', 'lon', 'start', 'n', 'biomass'];
   const missing = requiredParams.filter((param) => !queryData[param]);
 
   if (missing.length) {
-    res.status(400).send({ missing });
+    // reply.status(400).send({ missing });
+    reply.code(400).send({ missing });
     return;
   }
 
@@ -371,13 +368,13 @@ const ccncalc = async (req, res, type) => {
 
   if (site) {
     lat = site.lat.toString();
-    req.query.lat = lat;
+    request.query.lat = lat;
     lon = site.lon.toString();
-    req.query.lon = lon;
+    request.query.lon = lon;
     start = moment(site.killDate).format('YYYY-MM-DD');
-    req.query.start = start;
+    request.query.start = start;
     end = moment(site.killDate).add(120, 'days').format('YYYY-MM-DD');
-    req.query.end = end;
+    request.query.end = end;
     biomass = site.biomass;
     N = site.N;
     carb = site.carb;
@@ -420,9 +417,9 @@ const ccncalc = async (req, res, type) => {
 
   if (type === 'mit') {
     const data = (
-      await query(`select * from weather.modelinput where site='mit' and id='${req.query.id}'`)
+      await query(`select * from weather.modelinput where site='mit' and id='${request.query.id}'`)
     )[0];
-    type = req.query.model || data.model.toLowerCase();
+    type = request.query.model || data.model.toLowerCase();
     start = data.start;
     end = data.end;
     BD = data.bd;
@@ -432,8 +429,8 @@ const ccncalc = async (req, res, type) => {
     cell = data.fompctcell;
     lign = data.fompctlign;
     OM = 5.2; // from ssurgo
-    req.query.pmn = req.query.pmn || 7; // todo
-    req.query.in = req.query.in || 10; // todo
+    request.query.pmn = request.query.pmn || 7; // todo
+    request.query.in = request.query.in || 10; // todo
     lwc = data.litterwatercontent;
 
     const tempColumn = data.soiltemperature;
@@ -495,7 +492,8 @@ const ccncalc = async (req, res, type) => {
       });
 
       if (error) {
-        res.status(400).send({
+        // reply.status(400).send({
+        reply.code(400).send({
           error: `All arrays must be the same length:
             ${Object.keys(parms)
               .filter((parm) => parms[parm]?.length > 1)
@@ -535,19 +533,27 @@ const ccncalc = async (req, res, type) => {
       let wq = 0;
       let sq = 0;
 
-      res.flush = () => {
-        if (res.socket?.writable) {
-          res.socket.write(' ');
-        }
+      reply.flush = () => {
+        // if (reply.socket?.writable) {
+        //   reply.socket.write(' ');
+        // }
+        if (reply.raw?.writable) reply.raw.write(' ');
       };
 
       if (queryData.stream) {
         console.log('streaming');
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Transfer-Encoding', 'chunked');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.set('Content-Encoding', 'identity');
-        res.write('[');
+        // reply.setHeader('Content-Type', 'application/json');
+        // reply.setHeader('Transfer-Encoding', 'chunked');
+        // reply.setHeader('Cache-Control', 'no-cache');
+        // reply.set('Content-Encoding', 'identity');
+
+        reply
+          .header('Content-Type', 'application/json')
+          // .header('Transfer-Encoding', 'chunked')
+          .header('Cache-Control', 'no-cache')
+          .header('Content-Encoding', 'identity');
+
+        reply.raw.write('[');
       }
 
       for await (const [i] of largestArray.entries()) {
@@ -685,8 +691,8 @@ const ccncalc = async (req, res, type) => {
           if (queryData.summary) {
             models[i].results.surface = models[i].results.surface.slice(-1);
           }
-          res.write(JSON.stringify(models[i]) + comma);
-          // res.flush();
+          reply.raw.write(JSON.stringify(models[i]) + comma);
+          // reply.flush();
         }
         console.timeEnd(`sm: ${i}`);
       }
@@ -697,8 +703,8 @@ const ccncalc = async (req, res, type) => {
       `);
 
       if (queryData.stream) {
-        res.write(']');
-        res.end();
+        reply.raw.write(']');
+        reply.raw.end();
         return;
       }
 
@@ -726,9 +732,18 @@ const ccncalc = async (req, res, type) => {
             .join('\n')}`;
         }
 
-        res.set('Content-Type', 'application/octet-stream');
-        res.setHeader('Content-disposition', `attachment; filename=mit${typ}.${queryData.id}.csv`);
-        res.send(s);
+        // reply.set('Content-Type', 'application/octet-stream');
+        // reply.setHeader(
+        //   'Content-disposition',
+        //   `attachment; filename=mit${typ}.${queryData.id}.csv`,
+        // );
+        // reply.send(s);
+
+        reply
+          .type('application/octet-stream')
+          .header('Content-disposition', `attachment; filename=mit${typ}.${queryData.id}.csv`);
+
+        return s;
       } else {
         if (queryData.summary) {
           models.forEach((model) => {
@@ -738,7 +753,8 @@ const ccncalc = async (req, res, type) => {
           });
         }
         if (queryData.nonly) {
-          res.json(models.map((model) => model.results.surface.map((obj) => obj.MinNfromFOM)));
+          // reply.json(models.map((model) => model.results.surface.map((obj) => obj.MinNfromFOM)));
+          return models.map((model) => model.results.surface.map((obj) => obj.MinNfromFOM));
         } else {
           if (queryData.attributes) {
             const attributes = queryData.attributes.split(/\s*,\s*/);
@@ -759,15 +775,17 @@ const ccncalc = async (req, res, type) => {
             });
           }
           if (models.length === 1) {
-            res.json(models[0].results);
+            // reply.json(models[0].results);
+            return models[0].results;
           } else {
-            res.json(models);
+            // reply.json(models);
+            return models;
           }
         }
       }
     } catch (ee) {
       console.error(ee.stack);
-      res.send({
+      reply.send({
         lastFetch,
         error: ee.message,
       });
@@ -775,10 +793,11 @@ const ccncalc = async (req, res, type) => {
   }
 }; // ccncalc
 
-const surface = (req, res) => {
-  if (req.method === 'POST') {
-    if (req.get('Content-Type') !== 'text/plain') {
-      ccncalc(req, res, 'surface');
+const surface = (request, reply) => {
+  if (request.method === 'POST') {
+    // if (request.get('Content-Type') !== 'text/plain') {
+    if (!request.headers['content-type']?.startsWith('text/plain')) {
+      return ccncalc(request, reply, 'surface');
     } else {
       let data = '';
 
@@ -788,14 +807,14 @@ const surface = (req, res) => {
         return result;
       }; // .slice(parm.length);
 
-      req.on('data', (chunk) => {
+      request.raw.on('data', (chunk) => {
         data += chunk;
       });
 
-      req.on('end', () => {
+      request.raw.on('end', () => {
         const lat = get('lat');
         const lon = get('lon');
-        req.body = {
+        request.body = {
           lat,
           lon,
           start: get('start'),
@@ -816,20 +835,20 @@ const surface = (req, res) => {
           simple: get('simple'),
         };
 
-        Object.keys(req.body).forEach((key) => {
-          if (req.body[key] === '') {
-            delete req.body[key];
+        Object.keys(request.body).forEach((key) => {
+          if (request.body[key] === '') {
+            delete request.body[key];
           }
         });
 
         const weatherData = data.split(/\bWEATHER\b/)[1];
         if (weatherData) {
-          req.body.weather = [];
+          request.body.weather = [];
           weatherData.split(/[\n\r]+/).forEach((r) => {
             const row = r.split(',');
             const date = new Date(row[0]);
             if (!Number.isNaN(date.getTime())) {
-              req.body.weather.push({
+              request.body.weather.push({
                 lat,
                 lon,
                 date: row[0],
@@ -840,25 +859,27 @@ const surface = (req, res) => {
             }
           });
         }
-        ccncalc(req, res, 'surface');
+        return ccncalc(request, reply, 'surface');
       });
     }
   } else {
-    ccncalc(req, res, 'surface');
+    return ccncalc(request, reply, 'surface');
   }
 };
 
-const mit = (req, res) => ccncalc(req, res, 'mit');
+const mit = (request, reply) => ccncalc(request, reply, 'mit');
 
-const modelInputs = async (_req, res) => {
-  const results = await query('select * from weather.modelinput order by id');
-  res.send(results);
+const modelInputs = async (_req, _reply) => {
+  const results = await query('select * from modelinput order by id');
+  console.log(results);
+  // reply.send(results);
+  return results;
 }; // modelInputs
 
-const status = (_req, res) => {
+const status = (_req, reply) => {
   const used = process.memoryUsage();
 
-  res.send({
+  reply.send({
     RSS: `${Math.round(used.rss / 1024 / 1024)} MB}`,
     'Heap Total': `${Math.round(used.heapTotal / 1024 / 1024)} MB}`,
     'Heap Used': `${Math.round(used.heapUsed / 1024 / 1024)} MB}`,

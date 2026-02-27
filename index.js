@@ -1,67 +1,89 @@
-// process.on('uncaughtException', (err) => {
-//   console.error(err);
-//   console.log('Node NOT Exiting...');
-// });
+require('dotenv').config();
 
-const express = require('express'); // simplifies http server development
-
-const dotenv = require('dotenv');
-
-dotenv.config();
-
-const cors = require('cors'); // allow cross-origin requests
-const path = require('node:path'); // to get the current path
+const path = require('node:path');
 const fs = require('node:fs');
-const ccncalc = require('./cc-ncalc');
 
-const app = express();
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-app.use(cors());
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use((err, _req, res, _next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+const fastify = require('fastify')({
+  logger: true,
+  bodyLimit: 50 * 1024 * 1024, // 50mb
 });
 
-app.use(express.static(path.join(__dirname, 'public'))); // make the public folder available
+const cors = require('@fastify/cors');
+const formbody = require('@fastify/formbody');
+const statik = require('@fastify/static');
 
-app.get('/', (req, res) => {
-  const fileContent = fs.readFileSync('index.html', 'utf-8');
+const ccncalc = require('./cc-ncalc');
 
-  // Replace HOSTNAME with the current hostname
+// Plugins
+fastify.register(cors, { origin: true });
+fastify.register(formbody);
+
+// Static folders
+fastify.register(statik, {
+  root: path.join(__dirname, 'build'),
+  prefix: '/',
+  decorateReply: true,
+});
+
+fastify.register(statik, {
+  root: path.join(__dirname, 'public'),
+  prefix: '/public/',
+  decorateReply: false,
+});
+
+// Error handler
+fastify.setErrorHandler((err, _req, reply) => {
+  fastify.log.error(err);
+  reply.code(500).send('Something broke!');
+});
+
+// Routes
+fastify.get('/', async (req, reply) => {
+  const fileContent = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
+
   const currentHostname = `${req.protocol}://${req.headers.host}`;
   const modifiedContent = fileContent.replace(/HOSTNAME/g, currentHostname);
 
-  res.send(modifiedContent);
+  reply.type('text/html').send(modifiedContent);
 });
 
-app.all('/surface', ccncalc.surface);
-app.get('/mit', ccncalc.mit);
-app.get('/modelInputs', ccncalc.modelInputs);
-app.all('/status', ccncalc.status);
+fastify.all('/surface', (req, reply) => ccncalc.surface(req, reply));
 
-app.use(express.static(`${__dirname}/build`));
-app.get('/models', (_req, res) => res.sendFile(`${__dirname}/build/index.html`));
+fastify.get('/mit', (req, reply) => ccncalc.mit(req, reply));
+fastify.get('/modelInputs', (req, reply) => ccncalc.modelInputs(req, reply));
+fastify.all('/status', (req, reply) => ccncalc.status(req, reply));
 
-app.get('/sourceold', (_req, res) => {
-  const fileContent = fs.readFileSync('surface.js', 'utf-8');
-  res.set('Content-Type', 'text/javascript');
-  res.send(fileContent.match(/const surfaceModel.+?[\n\r]\}/ms)[0]);
+// fastify.get('/models', async (_req, reply) => {
+//   reply
+//     .type('text/html')
+//     .send(fs.readFileSync(path.join(__dirname, 'build', 'index.html'), 'utf-8'));
+// });
+
+fastify.get('/models', (_req, reply) => {
+  return reply.sendFile('index.html');
 });
 
-app.get('/sourcenew', (_req, res) => {
-  const fileContent = fs.readFileSync('new2.js', 'utf-8');
-  res.set('Content-Type', 'text/javascript');
-  res.send(fileContent.match(/const surfaceModelNew.+?[\n\r]\}/ms)[0]);
+fastify.get('/sourceold', async (_req, reply) => {
+  const fileContent = fs.readFileSync(path.join(__dirname, 'surface.js'), 'utf-8');
+  const match = fileContent.match(/const surfaceModel.+?[\n\r]\};/ms);
+  reply.type('text/javascript').send(match ? match[0] : '');
 });
 
-const port = process.env.PORT || 80;
-app.listen(port);
+fastify.get('/sourcenew', async (_req, reply) => {
+  const fileContent = fs.readFileSync(path.join(__dirname, 'new2.js'), 'utf-8');
+  const match = fileContent.match(/const surfaceModelNew.+?[\n\r]\};/ms);
+  reply.type('text/javascript').send(match ? match[0] : '');
+});
 
-console.log(`Running on port ${port}`);
+// Start server
+const port = Number(process.env.PORT || 80);
+
+fastify
+  .listen({ port, host: '0.0.0.0' })
+  .then(() => {
+    fastify.log.info(`Running on port ${port}`);
+  })
+  .catch((err) => {
+    fastify.log.error(err);
+    process.exit(1);
+  });
