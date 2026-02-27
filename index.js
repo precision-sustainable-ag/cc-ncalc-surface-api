@@ -53,12 +53,6 @@ fastify.get('/mit', (req, reply) => ccncalc.mit(req, reply));
 fastify.get('/modelInputs', (req, reply) => ccncalc.modelInputs(req, reply));
 fastify.all('/status', (req, reply) => ccncalc.status(req, reply));
 
-// fastify.get('/models', async (_req, reply) => {
-//   reply
-//     .type('text/html')
-//     .send(fs.readFileSync(path.join(__dirname, 'build', 'index.html'), 'utf-8'));
-// });
-
 fastify.get('/models', (_req, reply) => {
   return reply.sendFile('index.html');
 });

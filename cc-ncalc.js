@@ -138,7 +138,6 @@ const ccncalc = async (request, reply, type) => {
   let weather;
   let moisture;
 
-  // const queryData = request.method === 'GET' ? request.query : request.body;
   const queryData = request.body ?? request.query;
   const site = queryData.psa ? PSA[queryData.psa] : null;
 
@@ -146,7 +145,6 @@ const ccncalc = async (request, reply, type) => {
   const missing = requiredParams.filter((param) => !queryData[param]);
 
   if (missing.length) {
-    // reply.status(400).send({ missing });
     reply.code(400).send({ missing });
     return;
   }
@@ -492,7 +490,6 @@ const ccncalc = async (request, reply, type) => {
       });
 
       if (error) {
-        // reply.status(400).send({
         reply.code(400).send({
           error: `All arrays must be the same length:
             ${Object.keys(parms)
@@ -534,18 +531,11 @@ const ccncalc = async (request, reply, type) => {
       let sq = 0;
 
       reply.flush = () => {
-        // if (reply.socket?.writable) {
-        //   reply.socket.write(' ');
-        // }
         if (reply.raw?.writable) reply.raw.write(' ');
       };
 
       if (queryData.stream) {
         console.log('streaming');
-        // reply.setHeader('Content-Type', 'application/json');
-        // reply.setHeader('Transfer-Encoding', 'chunked');
-        // reply.setHeader('Cache-Control', 'no-cache');
-        // reply.set('Content-Encoding', 'identity');
 
         reply
           .header('Content-Type', 'application/json')
@@ -692,7 +682,6 @@ const ccncalc = async (request, reply, type) => {
             models[i].results.surface = models[i].results.surface.slice(-1);
           }
           reply.raw.write(JSON.stringify(models[i]) + comma);
-          // reply.flush();
         }
         console.timeEnd(`sm: ${i}`);
       }
@@ -724,24 +713,20 @@ const ccncalc = async (request, reply, type) => {
             data = data.slice(-1);
           }
 
-          // const s = `${Object.keys(data[0]).sort((a, b) => a.localeCompare(b)).toString()}\n${
-          //   data.map((r) => Object.keys(r).sort((a, b) => a.localeCompare(b)).map((v) => r[v])).join('\n')}`;
-
-          s = `${Object.keys(data[0])}\n${data
-            .map((r) => Object.keys(r).map((v) => r[v]))
+          s = `${Object.keys(data[0])
+            .sort((a, b) => a.localeCompare(b))
+            .toString()}\n${data
+            .map((r) =>
+              Object.keys(r)
+                .sort((a, b) => a.localeCompare(b))
+                .map((v) => r[v]),
+            )
             .join('\n')}`;
         }
 
-        // reply.set('Content-Type', 'application/octet-stream');
-        // reply.setHeader(
-        //   'Content-disposition',
-        //   `attachment; filename=mit${typ}.${queryData.id}.csv`,
-        // );
-        // reply.send(s);
-
         reply
           .type('application/octet-stream')
-          .header('Content-disposition', `attachment; filename=mit${typ}.${queryData.id}.csv`);
+          .header('Content-disposition', `attachment; filename=${typ}.${queryData.id}.csv`);
 
         return s;
       } else {
@@ -753,7 +738,6 @@ const ccncalc = async (request, reply, type) => {
           });
         }
         if (queryData.nonly) {
-          // reply.json(models.map((model) => model.results.surface.map((obj) => obj.MinNfromFOM)));
           return models.map((model) => model.results.surface.map((obj) => obj.MinNfromFOM));
         } else {
           if (queryData.attributes) {
@@ -765,20 +749,11 @@ const ccncalc = async (request, reply, type) => {
                   return obj;
                 }, {}),
               );
-              // model.results.surface = model.results.surface.map((row) => {
-              //   const obj = {};
-              //   attributes.forEach((attr) => {
-              //     obj[attr] = row[attr];
-              //   });
-              //   return obj;
-              // });
             });
           }
           if (models.length === 1) {
-            // reply.json(models[0].results);
             return models[0].results;
           } else {
-            // reply.json(models);
             return models;
           }
         }
@@ -795,7 +770,6 @@ const ccncalc = async (request, reply, type) => {
 
 const surface = (request, reply) => {
   if (request.method === 'POST') {
-    // if (request.get('Content-Type') !== 'text/plain') {
     if (!request.headers['content-type']?.startsWith('text/plain')) {
       return ccncalc(request, reply, 'surface');
     } else {
@@ -870,9 +844,7 @@ const surface = (request, reply) => {
 const mit = (request, reply) => ccncalc(request, reply, 'mit');
 
 const modelInputs = async (_req, _reply) => {
-  const results = await query('select * from modelinput order by id');
-  console.log(results);
-  // reply.send(results);
+  const results = await query('SELECT * FROM modelinput ORDER BY id');
   return results;
 }; // modelInputs
 

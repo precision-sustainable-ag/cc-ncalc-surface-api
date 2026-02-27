@@ -1,11 +1,13 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  user: process.env.WEATHER_USER,
-  password: process.env.WEATHER_PW,
-  host: '128.192.142.200',
-  database: 'postgres',
-  port: 5432,
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  port: process.env.DB_PORT,
+  ssl: process.env.DB_SSL !== 'false',
+  connectionTimeoutMillis: Number(process.env.DB_CONN_TIMEOUT_MS) || 5000,
 });
 
 module.exports = {
