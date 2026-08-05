@@ -2,7 +2,7 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/formbody": "^8.0.2",
-    "@fastify/static": "^9.0.0",
+    "@fastify/static": "^10.1.2",
     "airtable": "^0.12.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
